@@ -1,0 +1,48 @@
+#!/bin/sh
+
+################
+# Clobber AWK
+################
+
+optionCount=0
+optionArg=0
+scriptFile=0
+scriptText=""
+for arg in $@ ; do
+	if [ "$arg" = "-f" ] ; then
+		scriptFile=1
+		optionArg=1
+		optionCount=$((optionCount+1))
+	elif [ "${arg:0:1}" = "-" ] ; then
+		optionArg=1
+		optionCount=$((optionCount+1))
+	elif [ $optionArg -eq 1 ] ; then
+		optionArg=0
+		optionCount=$((optionCount+1))
+	else
+		if [ $scriptFile -eq 0 ] ; then
+			scriptText=${@:$((optionCount+1)):1}
+			fileStartIndex=$((optionCount+2))
+		fi
+
+		break
+	fi
+done
+
+fileStartIndex=${fileStartIndex:-$((optionCount+1))}
+awkOptions=${@:0:$((optionCount+1))}
+fileNames=${@:$fileStartIndex}
+
+if [ -z ${fileNames:0:1} ] ; then
+	fileNames=`cat /dev/stdin`
+fi
+
+tempFileName=`mktemp temp.XXXX`
+for fileName in $fileNames ; do
+	if [ -z ${scriptText:0:1} ] ; then
+		awk $awkOptions $fileName > $tempFileName & mv $tempFileName $fileName
+	else
+		awk $awkOptions "$scriptText" $fileName > $tempFileName & mv $tempFileName $fileName
+	fi
+done
+
