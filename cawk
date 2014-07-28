@@ -30,7 +30,7 @@ for arg in $@ ; do
 done
 
 fileStartIndex=${fileStartIndex:-$((optionCount+1))}
-awkOptions=${@:0:$((optionCount+1))}
+awkOptions=${@:1:$optionCount}
 fileNames=${@:$fileStartIndex}
 
 if [ -z ${fileNames:0:1} ] ; then
@@ -40,9 +40,10 @@ fi
 tempFileName=`mktemp temp.XXXX`
 for fileName in $fileNames ; do
 	if [ -z ${scriptText:0:1} ] ; then
-		awk $awkOptions $fileName > $tempFileName & mv $tempFileName $fileName
+		awk $awkOptions $fileName > $tempFileName && cp $tempFileName $fileName
 	else
-		awk $awkOptions "$scriptText" $fileName > $tempFileName & mv $tempFileName $fileName
+		echo $scriptText | xargs -0 -I{} awk $awkOptions {} $fileName > $tempFileName && cp $tempFileName $fileName
 	fi
-done
 
+	rm $tempFileName
+done
